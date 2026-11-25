@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Juice and Water</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday learning, light and quiet, for adults
+   IDEA one card of an interactive puzzle lesson, fixed-size board on every screen
+   PICTURE the board itself: glasses, then baskets of balls, then a thousand dots that turn back into glasses
+   COLOUR warm white ground, dark ink, juice red and water blue as the only strong colours, purple for actions
+   TYPE Rubik throughout, same as the sock lesson
+   LAYOUT one centred column: title, prompt, board, controls, feedback, Continue */
+:root{color-scheme:light;--bg:#faf9f6;--card:#ffffff;--ink:#37333f;--soft:#6d6878;--accent:#5938b5;--line:#e6e1ea;--ok:#2f7a4a;--bad:#b23a48;--wine:#a3193d;--water:#3f8ae0;--basket:#ebeaee;--basket2:#e2e1e6}
+:root,:root[data-theme=dark],:root[data-theme=light]{color-scheme:light!important}
+html,body{background:var(--bg)!important;color:var(--ink)}
+*{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Rubik,system-ui,sans-serif}
+main{max-width:720px;margin:0 auto;padding:10px 16px 32px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;min-height:44px;margin-bottom:8px}
+.dots{display:flex;gap:8px}
+.dots button{width:30px;height:8px;min-height:0;padding:0;border-radius:4px;background:var(--line);border:0;cursor:pointer}
+.dots button.on{background:var(--accent)}
+.dots button:disabled{cursor:default}
+.pill{font-size:14px;padding:6px 12px;border-radius:999px;background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--ink);display:none}
+.pill.show{display:inline-block}
+.screen{display:none;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:clamp(14px,2.5vw,22px)}
+.screen.on{display:block;animation:in .35s ease}
+@keyframes in{from{opacity:0;transform:translateY(6px)}}
+h2{font-size:clamp(22px,4vw,28px);line-height:1.1;margin:0 0 6px;font-weight:600;letter-spacing:-.01em}
+p{margin:0 0 12px}
+.board{position:relative;aspect-ratio:600/240;width:100%;border-radius:14px;background:color-mix(in srgb,var(--ink) 3%,var(--card));overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.board>.glass-host,.board>canvas,.board>svg.pairs{position:absolute;inset:0;width:100%;height:100%}
+.board>.glass-host{display:flex;align-items:center;justify-content:center}
+.glass-host .glass-anim{height:100%;width:auto;max-width:100%}
+.small{font:500 15px Rubik,system-ui,sans-serif;background:none;border:0;color:var(--accent);min-height:44px;padding:0 4px;cursor:pointer}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:8px;margin:10px 0 4px}
+.opt{font:16px Rubik,system-ui,sans-serif;text-align:left;min-height:48px;padding:10px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.opts.o3{grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
+.opt.th{display:flex;align-items:center;gap:12px;padding:8px 14px 8px 10px}
+.opt.th svg{flex:none;width:72px;height:auto}
+.opt.wrong svg{opacity:.45}
+.opt:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
+.opt.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--card))}
+.opt.wrong{border-color:var(--bad);color:var(--soft);text-decoration:line-through}
+.opt.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,var(--card))}
+.opt:disabled{cursor:default}
+button:focus-visible,input:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:2px}
+.fb{min-height:24px;margin:8px 0 0}
+.fb:empty{min-height:0;margin:0}
+.fb.ok{color:var(--ok)}.fb.bad{color:var(--bad)}.fb.note{color:var(--accent);font-weight:500}
+.hl{color:var(--accent);font-weight:600}
+.sec{font:600 15px Rubik,system-ui,sans-serif;min-height:44px;padding:0 20px;border-radius:999px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.sec:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
+.qd{display:inline-flex;gap:4px;margin-right:10px;vertical-align:-2px}
+.qd i{width:14px;height:14px;border-radius:50%;display:block}
+.qd i.r{background:var(--wine)}.qd i.u{background:var(--water)}
+.foot{display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap}
+.next,.main{font:500 16px Rubik,system-ui,sans-serif;min-height:46px;padding:0 24px;border-radius:999px;border:0;background:var(--accent);color:#fff;cursor:pointer}
+.next:disabled,.main:disabled{background:var(--line);color:var(--soft);cursor:default}
+.basket{position:absolute;top:12%;bottom:4%;border-radius:10px 10px 28px 28px;background:repeating-linear-gradient(90deg,var(--basket) 0 14px,var(--basket2) 14px 16px),var(--basket);box-shadow:inset 0 -10px 0 rgba(0,0,0,.06)}
+.basket.b1{left:4%;right:54%}.basket.b2{left:54%;right:4%}
+.basket.shake{animation:shake .6s ease}
+@keyframes shake{20%{transform:rotate(-3deg)}40%{transform:rotate(3deg)}60%{transform:rotate(-2deg)}80%{transform:rotate(2deg)}}
+.blabel{position:absolute;top:15%;font-weight:600;font-size:clamp(14px,2.6vw,18px);color:var(--soft)}
+.blabel.l1{left:6.5%}.blabel.l2{left:56.5%}
+.badge{position:absolute;top:15%;left:25%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:14px;padding:2px 10px;border-radius:999px;opacity:0;transition:opacity .4s}
+.badge.show{opacity:1}
+.ball{position:absolute;width:6.4%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);transition:left .35s ease,top .35s ease;cursor:grab;box-shadow:inset -3px -4px 0 rgba(0,0,0,.18),inset 3px 3px 0 rgba(255,255,255,.28)}
+.ball.red{background:var(--wine)}.ball.blue{background:var(--water)}
+.ball.drag{transition:none;z-index:5;cursor:grabbing;transform:translate(-50%,-50%) scale(1.12)}
+.ball.locked{cursor:default}
+.hint{position:absolute;left:30%;top:4%;width:40%;font-size:14px;text-align:center;color:var(--accent);pointer-events:none;animation:pulse 1.4s ease-in-out infinite}
+.hint svg{display:block;width:100%;height:auto}
+@keyframes pulse{50%{opacity:.35}}
+svg.pairs{pointer-events:none;z-index:6}
+svg.pairs path{fill:none;stroke:var(--accent);stroke-width:3;stroke-dasharray:6 5;stroke-linecap:round;vector-effect:non-scaling-stroke}
+svg.pairs ellipse{fill:none;stroke:var(--accent);stroke-width:3;vector-effect:non-scaling-stroke}
+.counters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8%;padding:0 4%;margin-top:10px}
+.counter{display:flex;justify-content:center;align-items:baseline;gap:8px;font-size:18px}
+.counter b{font-size:26px;font-variant-numeric:tabular-nums}
+.tries{list-style:none;padding:0;margin:10px 0 0;display:flex;flex-wrap:wrap;gap:6px}
+.tries li{font-size:14px;padding:4px 10px;border-radius:8px;border:1px solid var(--line);color:var(--soft);transition:background .3s}
+.tries li.flash{background:color-mix(in srgb,var(--accent) 15%,transparent)}
+.quiz{display:none;border-top:1px solid var(--line);margin-top:10px;padding-top:12px}
+.quiz.show{display:block;animation:in .4s ease}
+.ask{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.ask input{font:16px Rubik,system-ui,sans-serif;width:8em;min-height:46px;padding:0 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink)}
+.stats{margin-top:12px;color:var(--soft);min-height:24px}
+.stats b{color:var(--ink)}
+.morph{opacity:0;transition:opacity .9s}
+.morph.show{opacity:1}
+.saved{display:inline-block;padding:10px 14px;border-radius:12px;background:color-mix(in srgb,var(--accent) 10%,var(--card));border:1px dashed var(--accent);margin-bottom:12px}
+details{margin-top:12px;padding:10px 14px;border-radius:12px;background:color-mix(in srgb,var(--ink) 4%,var(--card))}
+summary{cursor:pointer;font-weight:500}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.glass-anim{display:block;width:100%;height:auto}
+.ga-back{fill:color-mix(in srgb,var(--ink) 4%,transparent)}
+.ga-glass{fill:none;stroke:color-mix(in srgb,var(--ink) 55%,transparent);stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
+.ga-shine{stroke:#fff;stroke-opacity:.6;stroke-width:4;stroke-linecap:round}
+.ga-shadow{fill:color-mix(in srgb,var(--ink) 10%,transparent)}
+.ga-tick{stroke:color-mix(in srgb,var(--ink) 55%,transparent);stroke-width:2}
+.ga-level{stroke:var(--accent);stroke-width:2;stroke-dasharray:7 6}
+.ga-label{font:500 19px Rubik,system-ui,sans-serif;fill:var(--ink);text-anchor:middle}
+
+</style>
+</head>
+<body>
+<main>
+<header>
+<nav class="dots" aria-label="Progress">
+<button type="button" data-go="0" class="on" aria-label="Screen 1"></button>
+<button type="button" data-go="1" disabled aria-label="Screen 2"></button>
+<button type="button" data-go="2" disabled aria-label="Screen 3"></button>
+<button type="button" data-go="3" disabled aria-label="Screen 4"></button>
+</nav>
+<span class="pill" id="pill"></span>
+</header>
+
+<section class="screen on" id="s0">
+<h2>Juice and water</h2>
+<div class="board"><div class="glass-host" id="g0"></div><button type="button" class="sec" id="replay" style="position:absolute;top:10px;right:10px">Replay</button></div>
+<div style="height:10px"></div>
+<p>Pour some juice into the water, then the same amount back.<br>Now: more water in the juice, or more juice in the water?</p>
+<div class="opts" id="o0"></div>
+<p class="fb" id="f0"></p>
+<div class="foot"><button type="button" class="next" disabled>Continue</button></div>
+</section>
+
+<section class="screen" id="s1">
+<h2>Try it with balls</h2>
+<p>Move 3 balls from basket 1 to basket 2. Then move 3 back.<br>Can you make the Blue and Red counts <span class="hl">different</span>?</p>
+<div class="board" id="bb">
+<div class="basket b1"></div><div class="basket b2"></div>
+<div class="blabel l1">1</div><div class="blabel l2">2</div>
+<div class="badge" id="badge">6 balls</div>
+<div class="hint" id="hint"><svg viewBox="0 0 200 40" aria-hidden="true"><path d="M10 30 Q100 -6 186 26" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M172 16 L188 27 L170 34" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>Drag or tap a ball</div>
+<svg class="pairs" id="pairs" viewBox="0 0 600 340" preserveAspectRatio="none"></svg>
+</div>
+<div class="counters">
+<div class="counter"><span>Blue:</span><b id="c1">0</b></div>
+<div class="counter"><span>Red:</span><b id="c2">0</b></div>
+</div>
+<p class="fb" id="msg"></p>
+<div class="foot" style="justify-content:flex-start;margin-top:8px"><button type="button" class="sec" id="reset" hidden>Try again</button></div>
+<div class="quiz" id="quiz">
+<p>We want basket 1 to have a <span class="hl">different</span> number of blue balls than basket 2 has red balls. Which 3 balls should go back to basket 1?</p>
+<div class="opts o3" id="o1"></div>
+<p class="fb" id="f1"></p>
+</div>
+<div class="foot"><button type="button" class="sec back">Back</button><span style="flex:1"></span><button type="button" class="next" disabled>Continue</button></div>
+</section>
+
+<section class="screen" id="s2">
+<h2>Now with a thousand</h2>
+<p>Each basket holds 1000 balls. Move 300 over, then 300 back.</p>
+<div class="board" id="db"><canvas id="cv"></canvas><div class="glass-host morph" id="g2"></div></div>
+<div class="ask"><button type="button" class="main" id="run">Move 300 over and back</button></div>
+<p class="stats" id="stats"></p>
+<div class="ask" id="ask2" hidden>
+<label for="in2">Red balls in basket 2:</label>
+<input id="in2" type="number" inputmode="numeric" min="0" max="300">
+<button type="button" class="main" id="chk">Check</button>
+</div>
+<p class="fb" id="f2"></p>
+<div class="foot"><button type="button" class="sec back">Back</button><span style="flex:1"></span><button type="button" class="next" disabled>Continue</button></div>
+</section>
+
+<section class="screen" id="s3">
+<h2>Back to your guess</h2>
+<div class="saved" id="saved"></div>
+<div class="board"><div class="glass-host" id="g3"></div></div>
+<p style="margin-top:12px">So, which is bigger?</p>
+<div class="opts" id="o3"></div>
+<p class="fb" id="f3"></p>
+<details id="inv" hidden><summary>This idea has a name</summary><p style="margin:8px 0 0">It's an <b>invariant</b>: something that stays the same however you shuffle things around. Here it's the amount in each glass, and that alone settles the puzzle.</p></details>
+<div class="foot"><button type="button" class="sec back">Back</button><span style="flex:1"></span><button type="button" class="next" id="again" hidden>Start over</button></div>
+</section>
+</main>
+<script>
+function GlassAnim(host, opts) {
+  opts = opts || {};
+  var NS = 'http://www.w3.org/2000/svg';
+  var BASE = 308, LV = -90, DL = 14, END = 7600, LIPS = 144;
+  var WINE = '#a3193d', WATER = '#3f8ae0';
+  var HOME = [{ x: 170, y: BASE }, { x: 430, y: BASE }];
+  var POUR = [{ x: 233, y: 132, a: 75 }, { x: 367, y: 132, a: -75 }];
+  function clamp(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
+  function ease(v) { v = clamp(v); return v < .5 ? 2 * v * v : 1 - Math.pow(-2 * v + 2, 2) / 2; }
+  function seg(t, a, b) { return ease((t - a) / (b - a)); }
+  function lerp(a, b, k) { return a + (b - a) * k; }
+  function rot(x, y, a) { var r = a * Math.PI / 180, c = Math.cos(r), s = Math.sin(r); return { x: x * c - y * s, y: x * s + y * c }; }
+  var seed = 11;
+  function rnd() { seed = seed * 16807 % 2147483647; return (seed - 1) / 2147483646; }
+  function spot() {
+    var y = lerp(LV + 9, -7, rnd()), w = 40 + 10 * (-y) / 152 - 7;
+    return { x: lerp(-w, w, rnd()), y: y };
+  }
+  var redSpots = [], blueSpots = [];
+  for (var i = 0; i < 16; i++) redSpots.push(spot());
+  for (var j = 0; j < 13; j++) blueSpots.push(spot());
+
+  var OUT = 'M-52 -156 L-42 -6 Q-42 2 -34 2 L34 2 Q42 2 42 -6 L52 -156';
+  var uid = 'g' + Math.floor(Math.random() * 1e6);
+  var svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 32 600 308');
+  svg.setAttribute('class', 'glass-anim');
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', 'Some juice is poured into the water. Then the same amount is poured back into the juice.');
+  var html = '<defs><clipPath id="' + uid + 'c"><polygon points="-50,-152 -40,0 40,0 50,-152"/></clipPath></defs>';
+  HOME.forEach(function (h, k) {
+    html += '<ellipse cx="' + h.x + '" cy="' + (BASE + 6) + '" rx="58" ry="6" class="ga-shadow"/>' +
+      '<text x="' + h.x + '" y="' + (BASE + 26) + '" class="ga-label">' + (k ? 'Water' : 'Juice') + '</text>';
+  });
+  html += '<path class="ga-stream" d="" fill="none" stroke-width="7" stroke-linecap="round" pathLength="1" stroke-dasharray="1 1"/>';
+  ['w', 'u'].forEach(function (n, k) {
+    html += '<g class="ga-g' + n + '">' +
+      '<path d="' + OUT + ' Z" class="ga-back"/>' +
+      '<g clip-path="url(#' + uid + 'c)"><g class="ga-cr' + n + '">' +
+      '<rect class="ga-liq' + n + '" x="-300" width="600" height="600" fill="' + (k ? WATER : WINE) + '"/>' +
+      '<rect class="ga-top' + n + '" x="-300" width="600" height="4" fill="#fff" opacity=".25"/>' +
+      '<g class="ga-dots' + n + '"></g></g></g>' +
+      '<path d="' + OUT + '" class="ga-glass"/>' +
+      '<line x1="-42" y1="-136" x2="-35" y2="-24" class="ga-shine"/>' +
+      '<line x1="44" y1="' + LV + '" x2="56" y2="' + LV + '" class="ga-tick"/>' +
+      '</g>';
+  });
+  html += '<line class="ga-level" x1="100" x2="500" y1="' + (BASE + LV) + '" y2="' + (BASE + LV) + '"/>';
+  svg.innerHTML = html;
+  host.appendChild(svg);
+  function q(s) { return svg.querySelector(s); }
+  var G = [q('.ga-gw'), q('.ga-gu')], CR = [q('.ga-crw'), q('.ga-cru')];
+  var LQ = [q('.ga-liqw'), q('.ga-liqu')], TP = [q('.ga-topw'), q('.ga-topu')];
+  var stream = q('.ga-stream'), level = q('.ga-level');
+  function mk(parent, list, color) {
+    return list.map(function (p) {
+      var c = document.createElementNS(NS, 'circle');
+      c.setAttribute('r', '3'); c.setAttribute('fill', color);
+      c.setAttribute('stroke', 'rgba(255,255,255,.55)'); c.setAttribute('stroke-width', '1');
+      c.setAttribute('cx', p.x.toFixed(1)); c.setAttribute('cy', p.y.toFixed(1));
+      parent.appendChild(c); return c;
+    });
+  }
+  var redEls = mk(q('.ga-dotsu'), redSpots, WINE), blueEls = mk(q('.ga-dotsw'), blueSpots, '#8cc0f7');
+  var lastStep = -1;
+
+  function placeGlass(k, t, lvl, tOut, tBack) {
+    var mOut = seg(t, tOut, tOut + 1000), mBack = seg(t, tBack, tBack + 1000), m = mOut * (1 - mBack);
+    var tx = lerp(HOME[k].x, POUR[k].x, m), ty = lerp(HOME[k].y, POUR[k].y, m), a = POUR[k].a * m;
+    G[k].setAttribute('transform', 'translate(' + tx.toFixed(1) + ' ' + ty.toFixed(1) + ') rotate(' + a.toFixed(1) + ')');
+    CR[k].setAttribute('transform', 'rotate(' + (-a).toFixed(1) + ')');
+    var s = lerp(ty + lvl, LIPS, m) - ty;
+    LQ[k].setAttribute('y', s.toFixed(1)); TP[k].setAttribute('y', s.toFixed(1));
+    return m;
+  }
+  function render(t) {
+    var wl = LV + DL * seg(t, 1600, 2400) - DL * seg(t, 4800, 5600);
+    var ul = LV - DL * seg(t, 1600, 2400) + DL * seg(t, 4800, 5600);
+    var mw = placeGlass(0, t, wl, 600, 2400);
+    var mu = placeGlass(1, t, ul, 3800, 5600);
+    var on = 0, off = 0, sx, sy, ex, ey, col;
+    if (t >= 1500 && t < 2600) { on = seg(t, 1500, 1750); off = seg(t, 2250, 2500); sx = 397; sy = 143; ex = 404; ey = BASE + ul; col = WINE; }
+    else if (t >= 4700 && t < 5800) { on = seg(t, 4700, 4950); off = seg(t, 5450, 5700); sx = 203; sy = 143; ex = 196; ey = BASE + wl; col = WATER; }
+    if (on > 0 && off < 1) {
+      stream.setAttribute('d', 'M' + sx + ' ' + sy + ' Q' + ((sx + ex) / 2 + (ex - sx) * 2) + ' ' + (sy + 10) + ' ' + ex + ' ' + ey);
+      stream.setAttribute('stroke', col);
+      stream.setAttribute('stroke-dashoffset', off > 0 ? (-off).toFixed(3) : (1 - on).toFixed(3));
+      stream.setAttribute('opacity', 1);
+    } else stream.setAttribute('opacity', 0);
+    var rIn = seg(t, 1700, 2600), rHide = clamp(mu * 4);
+    redEls.forEach(function (el, i) {
+      var p = redSpots[i], o = rIn * (1 - rHide);
+      if (i < 3 && t > 4800) o = 0;
+      el.setAttribute('cx', lerp(-26, p.x, rIn).toFixed(1));
+      el.setAttribute('cy', lerp(LV + 12, p.y, rIn).toFixed(1));
+      el.setAttribute('opacity', o.toFixed(2));
+    });
+    var bIn = seg(t, 4900, 5800);
+    blueEls.forEach(function (el, i) {
+      var p = blueSpots[i];
+      el.setAttribute('cx', lerp(26, p.x, bIn).toFixed(1));
+      el.setAttribute('cy', lerp(LV + 12, p.y, bIn).toFixed(1));
+      el.setAttribute('opacity', (bIn * (1 - clamp(mw * 4))).toFixed(2));
+    });
+    level.setAttribute('opacity', opts.showLevel === false ? 0 : seg(t, 6600, 7400).toFixed(2));
+    var st = t < 3600 ? 0 : t < 6600 ? 1 : 2;
+    if (st !== lastStep && opts.onStep) { lastStep = st; opts.onStep(st); }
+  }
+  var raf = 0, start = 0, playing = false;
+  function frame(now) {
+    var t = (now - start) * (opts.speed || 1);
+    if (t >= END) { render(END); playing = false; if (opts.onEnd) opts.onEnd(); return; }
+    render(t); raf = requestAnimationFrame(frame);
+  }
+  function play() {
+    cancelAnimationFrame(raf);
+    lastStep = -1;
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) { render(END); if (opts.onEnd) opts.onEnd(); return; }
+    playing = true; start = performance.now(); raf = requestAnimationFrame(frame);
+  }
+  render(opts.startAtEnd ? END : 0);
+  return { play: play, render: render, END: END, svg: svg, isPlaying: function () { return playing; } };
+}
+
+{
+const $=s=>document.querySelector(s);
+const GUESSES=['More water in the juice','More juice in the water','Exactly the same','It depends'];
+const SAME=2;
+let cur=0,reached=0,guess=-1;
+
+function go(i){
+  cur=i;reached=Math.max(reached,i);
+  document.querySelectorAll('.screen').forEach((s,j)=>s.classList.toggle('on',j===i));
+  document.querySelectorAll('.dots button').forEach((b,j)=>{b.classList.toggle('on',j<=reached);b.disabled=j>reached;});
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(i===2)initDrops();
+  if(i===3)initBack();
+}
+document.querySelectorAll('.dots button').forEach(b=>b.addEventListener('click',()=>go(+b.dataset.go)));
+document.querySelectorAll('.screen').forEach((s,i)=>{const bk=s.querySelector('.back');if(bk)bk.addEventListener('click',()=>go(i-1));const n=s.querySelector('.next');if(n&&n.id!=='again')n.addEventListener('click',()=>go(i+1));});
+function done(i){document.querySelector('#s'+i+' .next').disabled=false;}
+function thumb(i){
+  const P=[[-6,29],[6,36],[-5,44],[6,23]],cnt=[[4,2],[2,4],[3,3]][i];
+  const glass=(cx,col,n,dot)=>'<polygon points="'+(cx-15)+',18 '+(cx-12)+',51 '+(cx+12)+',51 '+(cx+15)+',18" fill="'+col+'"/>'+
+    (n==null?'<text x="'+cx+'" y="41" text-anchor="middle" font-size="17" font-weight="600" fill="#fff">?</text>':P.slice(0,n).map(p=>'<circle cx="'+(cx+p[0])+'" cy="'+p[1]+'" r="3.3" fill="'+dot+'" stroke="rgba(255,255,255,.7)" stroke-width="1"/>').join(''))+
+    '<path d="M'+(cx-17)+' 5 L'+(cx-13)+' 52 L'+(cx+13)+' 52 L'+(cx+17)+' 5" fill="none" stroke="currentColor" stroke-opacity=".5" stroke-width="2" stroke-linejoin="round"/>';
+  return '<svg viewBox="0 0 96 58" aria-hidden="true">'+glass(26,'#a3193d',cnt?cnt[0]:null,'#8cc0f7')+glass(70,'#3f8ae0',cnt?cnt[1]:null,'#a3193d')+'</svg>';
+}
+function thumbs(list){list.forEach((b,i)=>{b.classList.add('th');b.insertAdjacentHTML('afterbegin',thumb(i));});}
+function opts(el,labels,onPick){
+  el.innerHTML='';
+  return labels.map((t,i)=>{const b=document.createElement('button');b.type='button';b.className='opt';b.textContent=t;b.addEventListener('click',()=>onPick(i,b));el.appendChild(b);return b;});
+}
+function fb(el,text,kind){el.textContent=text;el.className='fb'+(kind?' '+kind:'');}
+
+/* Screen 1: the puzzle */
+const a0=GlassAnim($('#g0'),{});
+$('#replay').addEventListener('click',()=>a0.play());
+setTimeout(()=>a0.play(),500);
+const b0=opts($('#o0'),GUESSES,(i,b)=>{
+  guess=i;b0.forEach(x=>x.classList.toggle('sel',x===b));
+  fb($('#f0'),"Saved. We'll come back to it.",'note');
+  const p=$('#pill');p.textContent='Your guess: '+GUESSES[i];p.classList.add('show');
+  done(0);
+});
+thumbs(b0);
+
+/* Screen 2: balls */
+const board=$('#bb');
+const balls=[];let b1=[],b2=[],phase='out',moved=0,postOut=null,tries=new Set(),busy=false,quizOn=false;
+for(let i=0;i<12;i++){
+  const el=document.createElement('div');const red=i<6;
+  el.className='ball '+(red?'red':'blue');el.setAttribute('aria-label',red?'red ball':'blue ball');
+  board.appendChild(el);balls.push({el,red});
+}
+function initBalls(){b1=[0,1,2,3,4,5];b2=[6,7,8,9,10,11];phase='out';moved=0;}
+function slot(basket,i){const col=i%4,row=Math.floor(i/4);return{x:(basket===1?9.25:59.25)+col*10.5,y:85-row*17};}
+function render(){
+  b1.forEach((id,i)=>{const p=slot(1,i);balls[id].el.style.left=p.x+'%';balls[id].el.style.top=p.y+'%';});
+  b2.forEach((id,i)=>{const p=slot(2,i);balls[id].el.style.left=p.x+'%';balls[id].el.style.top=p.y+'%';});
+  const k1=b1.filter(id=>!balls[id].red).length,k2=b2.filter(id=>balls[id].red).length;
+  $('#c1').textContent=k1;$('#c2').textContent=k2;
+  balls.forEach((b,id)=>b.el.classList.toggle('locked',!canMove(id)));
+}
+function canMove(id){
+  if(busy)return false;
+  return (phase==='out'&&b1.includes(id))||(phase==='back'&&b2.includes(id));
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function move(id){
+  $('#hint').style.display='none';
+  if(phase==='out'){b1=b1.filter(x=>x!==id);b2.push(id);}else{b2=b2.filter(x=>x!==id);b1.push(id);}
+  moved++;render();
+  if(phase==='out'&&moved===3){
+    phase='shake';render();
+    setTimeout(()=>{postOut={b1:b1.slice(),b2:b2.slice()};phase='back';moved=0;render();if(!busy)fb($('#msg'),'Now move 3 balls back to basket 1.');},400);
+  }else if(phase==='back'&&moved===3){
+    phase='done';render();finishTry();
+  }
+}
+function finishTry(){
+  const k=b1.filter(id=>!balls[id].red).length;
+  tries.add(k);
+  if(!busy){
+    fb($('#msg'),'');
+    $('#reset').hidden=false;
+    if(tries.size>=1&&!quizOn){quizOn=true;$('#quiz').classList.add('show');}
+  }
+}
+function resetMix(){
+  if(!postOut)return;
+  b1=postOut.b1.slice();b2=postOut.b2.slice();phase='back';moved=0;
+  $('#pairs').innerHTML='';$('#badge').classList.remove('show');render();
+}
+$('#reset').addEventListener('click',()=>{if(busy)return;resetMix();fb($('#msg'),'');});
+let drag=null;
+board.addEventListener('pointerdown',e=>{
+  const id=balls.findIndex(b=>b.el===e.target);if(id<0||!canMove(id))return;
+  e.preventDefault();board.setPointerCapture(e.pointerId);
+  drag={id,x0:e.clientX,y0:e.clientY,moved:false};
+});
+board.addEventListener('pointermove',e=>{
+  if(!drag)return;
+  if(Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)>6)drag.moved=true;
+  if(!drag.moved)return;
+  const r=board.getBoundingClientRect(),el=balls[drag.id].el;
+  el.classList.add('drag');
+  el.style.left=((e.clientX-r.left)/r.width*100)+'%';el.style.top=((e.clientY-r.top)/r.height*100)+'%';
+});
+function endDrag(e){
+  if(!drag)return;
+  const d=drag;drag=null;const el=balls[d.id].el;el.classList.remove('drag');
+  if(!d.moved){move(d.id);return;}
+  const r=board.getBoundingClientRect(),x=(e.clientX-r.left)/r.width;
+  const target=x<.5?1:2,from=b1.includes(d.id)?1:2;
+  if(target!==from)move(d.id);else render();
+}
+board.addEventListener('pointerup',endDrag);
+board.addEventListener('pointercancel',e=>{drag=null;render();});
+function demo(k,cb){
+  busy=true;resetMix();
+  const blues=b2.filter(id=>!balls[id].red).slice(0,k),reds=b2.filter(id=>balls[id].red).slice(0,3-k);
+  const seq=reds.concat(blues);let i=0;render();
+  const step=()=>{if(i<seq.length){move(seq[i++]);setTimeout(step,1000);}else{busy=false;render();cb(k);}};
+  setTimeout(step,700);
+}
+function drawPairs(){
+  const blues=b1.filter(id=>!balls[id].red),reds=b2.filter(id=>balls[id].red);
+  $('#pairs').innerHTML=blues.map((id,i)=>{const p=slot(1,b1.indexOf(id)),q=slot(2,b2.indexOf(reds[i]));
+    const x1=p.x*6,y1=p.y*3.4,x2=q.x*6,y2=q.y*3.4,top=Math.min(y1,y2)-70-i*28,rx=26,ry=26;
+    return '<ellipse cx="'+x1+'" cy="'+y1+'" rx="'+rx+'" ry="'+ry+'"/><ellipse cx="'+x2+'" cy="'+y2+'" rx="'+rx+'" ry="'+ry+'"/>'+
+      '<path d="M'+x1+' '+(y1-ry)+' C'+x1+' '+top+' '+x2+' '+top+' '+x2+' '+(y2-ry)+'"/>';}).join('');
+  $('#badge').classList.add('show');
+}
+const Q1=['3 red','2 red, 1 blue','1 red, 2 blue','3 blue',"It's impossible"];
+const b1opts=opts($('#o1'),Q1,(i,b)=>{
+  if(busy)return;
+  b1opts.forEach(x=>x.disabled=true);
+  if(i<4){
+    fb($('#f1'),'Let’s try it…');
+    demo(i,k=>{b.classList.add('wrong');fb($('#f1'),'Look at the baskets: both counters show the same number. Try again.','bad');b1opts.forEach(x=>{if(!x.classList.contains('wrong'))x.disabled=false;});});
+  }else{
+    b.classList.add('right');fb($('#f1'),'');
+    $('#reset').hidden=true;fb($('#msg'),'');
+    demo(2,()=>{phase='locked';render();setTimeout(drawPairs,400);
+      fb($('#f1'),'Right. Basket 1 still has 6 balls. So every blue ball in it took the place of a red one, and that red one is now in basket 2.','ok');done(1);});
+  }
+});
+[[3,0],[2,1],[1,2],[0,3]].forEach(([r,u],i)=>b1opts[i].insertAdjacentHTML('afterbegin','<span class="qd" aria-hidden="true">'+'<i class="r"></i>'.repeat(r)+'<i class="u"></i>'.repeat(u)+'</span>'));
+initBalls();render();
+
+/* Screen 3: a thousand */
+const cv=$('#cv'),ctx=cv.getContext('2d');
+let dots=null,dropsDone=false,kBig=0,dotR=1;
+function rndIn(b){return{x:(b===1?6:56)+Math.random()*38,y:22+Math.random()*71};}
+function initDrops(){
+  if(dots)return;
+  dots=[];for(let i=0;i<2000;i++){const b=i<1000?1:2,p=rndIn(b);dots.push({red:i<1000,b,x:p.x,y:p.y,fx:p.x,fy:p.y,tx:p.x,ty:p.y});}
+  sizeCanvas();
+}
+function sizeCanvas(){
+  const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;
+  cv.width=r.width*d;cv.height=r.height*d;ctx.setTransform(d,0,0,d,0,0);draw(1);
+}
+const ro=new ResizeObserver(()=>{if(dots)sizeCanvas();});ro.observe(cv);
+const probe=document.createElement('div');probe.style.cssText='position:absolute;width:0;height:0;overflow:hidden;background:var(--basket);color:var(--ink)';document.body.appendChild(probe);
+function css(v){const c=getComputedStyle(probe);return v==='--basket'?c.backgroundColor:c.color;}
+function draw(scale,basketAlpha){
+  const W=cv.clientWidth,H=cv.clientHeight;ctx.clearRect(0,0,W,H);
+  ctx.globalAlpha=basketAlpha==null?1:basketAlpha;
+  ctx.fillStyle=css('--basket')||'#ead9b8';
+  [[4,46],[54,96]].forEach(([l,r])=>{ctx.beginPath();ctx.roundRect?ctx.roundRect(l*W/100,.12*H,(r-l)*W/100,.84*H,[10,10,28,28]):ctx.rect(l*W/100,.12*H,(r-l)*W/100,.84*H);ctx.fill();});
+  ctx.fillStyle=css('--ink');ctx.font='500 '+Math.max(13,Math.min(16,W*.027))+'px Rubik,system-ui,sans-serif';ctx.textAlign='center';
+  ctx.textAlign='left';ctx.fillText('1',.065*W,.12*H+20);ctx.fillText('2',.565*W,.12*H+20);
+  ctx.globalAlpha=1;
+  const r=Math.max(1.2,W*.0045)*scale;if(r<=.05)return;
+  for(const red of [true,false]){ctx.fillStyle=red?'#a3193d':'#3f8ae0';ctx.beginPath();
+    for(const d of dots){if(d.red!==red)continue;const x=d.x*W/100,y=d.y*H/100;ctx.moveTo(x+r,y);ctx.arc(x,y,r,0,6.2832);}ctx.fill();}
+}
+function animate(ms,arc,cb){
+  const t0=performance.now();
+  dots.forEach(d=>{d.fx=d.x;d.fy=d.y;});
+  const f=now=>{let k=Math.min(1,(now-t0)/ms);const e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+    dots.forEach(d=>{if(d.fx===d.tx&&d.fy===d.ty)return;d.x=d.fx+(d.tx-d.fx)*e;d.y=d.fy+(d.ty-d.fy)*e-(d.moving?arc*Math.sin(Math.PI*e):0);});
+    draw(1);if(k<1)requestAnimationFrame(f);else{dots.forEach(d=>d.moving=false);cb&&cb();}};
+  requestAnimationFrame(f);
+}
+function pick(arr,n){return shuffle(arr.slice()).slice(0,n);}
+$('#run').addEventListener('click',()=>{
+  const btn=$('#run');btn.disabled=true;fb($('#f2'),'');$('#stats').textContent='Moving 300 balls over…';
+  pick(dots.filter(d=>d.b===1),300).forEach(d=>{const p=rndIn(2);d.b=2;d.tx=p.x;d.ty=p.y;d.moving=true;});
+  animate(1200,18,()=>{
+    setTimeout(()=>{
+      $('#stats').textContent='Moving 300 balls back…';
+      const nb=60+Math.floor(Math.random()*201),in2=dots.filter(d=>d.b===2);
+      pick(in2.filter(d=>!d.red),nb).concat(pick(in2.filter(d=>d.red),300-nb)).forEach(d=>{const p=rndIn(1);d.b=1;d.tx=p.x;d.ty=p.y;d.moving=true;});
+      animate(1200,18,()=>{
+        kBig=dots.filter(d=>d.b===1&&!d.red).length;
+        $('#stats').innerHTML='Each basket has 1000 balls again. Basket 1 now has <b>'+kBig+'</b> blue balls.';
+        $('#ask2').hidden=false;$('#in2').focus({preventScroll:true});
+      });
+    },400);
+  });
+});
+function check2(){
+  if(dropsDone)return;
+  const v=parseInt($('#in2').value,10);
+  if(isNaN(v)){fb($('#f2'),'Type a number.','bad');return;}
+  if(v!==kBig){fb($('#f2'),'Not quite. Each blue ball in basket 1 took the place of a red ball. Where did that red ball go?','bad');return;}
+  dropsDone=true;$('#chk').disabled=true;$('#in2').disabled=true;
+  fb($('#f2'),'Yes, '+kBig+'. You didn’t need to count them.','ok');
+  const t0=performance.now();
+  const shrink=now=>{const k=Math.min(1,(now-t0)/1100);draw(1-k,1-k);if(k<1)requestAnimationFrame(shrink);else{
+    GlassAnim($('#g2'),{startAtEnd:true,showLevel:false});$('#g2').classList.add('show');
+    setTimeout(()=>{$('#run').hidden=true;$('#ask2').hidden=true;$('#stats').textContent='Now shrink the balls into drops. Red is juice, blue is water.';fb($('#f2'),'The juice has '+kBig+' drops of water. The water has '+kBig+' drops of juice.','ok');done(2);},500);}};
+  setTimeout(()=>requestAnimationFrame(shrink),700);
+}
+$('#chk').addEventListener('click',check2);
+$('#in2').addEventListener('keydown',e=>{if(e.key==='Enter')check2();});
+
+/* Screen 4: back to the guess */
+let backInit=false,b3=[];
+function initBack(){
+  $('#saved').textContent='At the start you said: '+(guess>=0?GUESSES[guess]:'nothing yet');
+  if(backInit)return;backInit=true;
+  GlassAnim($('#g3'),{startAtEnd:true});
+  b3=opts($('#o3'),GUESSES,(i,b)=>{
+    if(i!==SAME){b.classList.add('wrong');b.disabled=true;fb($('#f3'),'Look at the glasses: both are back at the starting line. Try again.','bad');return;}
+    b3.forEach(x=>x.disabled=true);b.classList.add('right');
+    fb($('#f3'),guess===SAME?'You were right. Now you know why.':'Most people guess like you did. The juice glass ends as full as it started, so every drop of water in it pushed out one drop of juice.','ok');
+    $('#inv').hidden=false;$('#again').hidden=false;
+  });
+  thumbs(b3);
+}
+$('#again').addEventListener('click',()=>location.reload());
+}
+</script>
+</body>
+</html>
